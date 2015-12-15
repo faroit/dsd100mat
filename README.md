@@ -44,7 +44,7 @@ name and the processing time, along with the estimates to the folder
 "Estimates". The function also saves the results for all the songs in a
 single file "result.mat" to the root folder, along with this function.
 
-### Separate and Evaluate
+### Evaluate only
 
 If you already have generated the estimates before (e.g. by using the [DSD100 python package]()
 you can run `DSD100_only_eval.m` separately. You therefore should place the file in a folder,
