@@ -1,33 +1,33 @@
-% This script is intended to perform the evaluation of the separation 
+% This script is intended to perform the evaluation of the separation
 % quality on the Demixing Secrets Dataset 100 (DSD100).
-% It was initially prepared for the task of "professionally-produced 
+% It was initially prepared for the task of "professionally-produced
 % music recordings (MUS)" of the fifth community-based Signal Separation
 % Evaluation Campaign (SiSEC 2015) (https://sisec.inria.fr/).
-% 
-% This function should be used along with the DSD100. The file 
-% "DSD100_only_eval.m" should be placed in a root folder, along with the 
+%
+% This function should be used along with the DSD100. The file
+% "DSD100_only_eval.m" should be placed in a root folder, along with the
 % folder "DSD100" and the folder, called YOURFOLDER here, containing your
 % results to evaluate.
-% 
-% The folder YOURFOLDER should have exactly the same structure as the 
+%
+% The folder YOURFOLDER should have exactly the same structure as the
 % DSD100/Sources folder, the matching is case sensitive. In each directory,
 % there should be the separated sources estimates whose quality is to be
 % evaluated. There is the possibility of not including all sources, and
 % also to include the "accompaniment" source, defined as the sum of all
 % sources except vocals.
-% 
+%
 % The evaluation function should then be called simply as follows:
 %   DSD100_only_eval.m
-% The function loops over all the 100 songs of the MSD100 data set, and, 
+% The function loops over all the 100 songs of the MSD100 data set, and,
 % for each song, for both the "Dev" and "Test" subsets, performs evaluation
 % using the BSS Eval toolbox 3.0 (included in this function) and saves the
-% results (i.e. SDR, ISR, SIR, and SAR) in the file "results.mat," including 
-% the song name. The function also saves the results for all the songs in a 
+% results (i.e. SDR, ISR, SIR, and SAR) in the file "results.mat," including
+% the song name. The function also saves the results for all the songs in a
 % single file "resultX.mat" to the root folder, along with this function.
 
-% We would like to thank Emmanuel Vincent for giving us the permission to 
-% use the BSS Eval toolbox 3.0; 
-% 
+% We would like to thank Emmanuel Vincent for giving us the permission to
+% use the BSS Eval toolbox 3.0;
+%
 % If you use this script, please reference the following paper
 %
 %@inproceedings{SiSEC2015,
@@ -41,8 +41,8 @@
 %  YEAR = {2015},
 %  MONTH = Aug,
 %}
-% 
-% A more adequate reference will soon be given at sisec.inria.fr 
+%
+% A more adequate reference will soon be given at sisec.inria.fr
 % please check there and provide the one provided.
 %
 % Original Author: Zafar Rafii, zafarrafii@gmail.com
@@ -61,10 +61,10 @@ for subset_index = 1:2
     sources_folder = fullfile(dataset_folder,'Sources',subsets_names{subset_index});
     estimates_folder = fullfile(dataset_folder,estimates_name,subsets_names{subset_index});
     songs_list = dir(estimates_folder);
-    for song_index = 1:50
+    for song_index = 1:numel(songs_list)-2
         song_name = songs_list(song_index+2).name;
         disp([subsets_names{subset_index},' ',num2str(song_index),'/',num2str(50),' ',song_name])
-        
+
         sources_data = [];
         for source_index = 1:4
             source_file = fullfile(sources_folder,song_name,[sources_names{source_index},'.wav']);
@@ -75,7 +75,7 @@ for subset_index = 1:2
             clear source_data
         end
         sources_data = cat(3,sources_data,sum(sources_data(:,:,1:3),3));
-        
+
         estimates_data = zeros(sources_samples,2,5);
         for estimate_index = 1:5
             estimate_file = fullfile(estimates_folder,song_name,[sources_names{estimate_index},'.wav']);
@@ -89,7 +89,7 @@ for subset_index = 1:2
                 clear estimate_data
             end
         end
-        
+
         [SDR,ISR,SIR,SAR] = bss_eval(estimates_data,sources_data,30*source_sampling,15*source_sampling);
         clear estimates_data sources_data
         results = struct;
