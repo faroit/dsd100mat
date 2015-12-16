@@ -46,7 +46,7 @@
 % please check there and provide the one provided.
 %
 % Original Author: Zafar Rafii, zafarrafii@gmail.com
-% Last updated by A.??Liutkus on December 7, 2015
+% Last updated by A.Liutkus on December 7, 2015
 
 function dsd100_only_eval
 
@@ -60,9 +60,12 @@ result = struct;
 for subset_index = 1:2
     sources_folder = fullfile(dataset_folder,'Sources',subsets_names{subset_index});
     estimates_folder = fullfile(dataset_folder,estimates_name,subsets_names{subset_index});
-    songs_list = dir(estimates_folder);
-    for song_index = 1:numel(songs_list)-2
-        song_name = songs_list(song_index+2).name;
+    song_list = dir(estimates_folder);
+    song_list_flags = [song_list.isdir]
+    % Extract only those that are directories.
+    song_list = song_list(song_list_flags)
+    for song_index = 1:numel(songs_list)
+        song_name = songs_list(song_index).name;
         disp([subsets_names{subset_index},' ',num2str(song_index),'/',num2str(50),' ',song_name])
 
         sources_data = [];

@@ -1,45 +1,45 @@
-% This script is intended to perform the full evaluation of the separation 
+% This script is intended to perform the full evaluation of the separation
 % quality of your method on the Demixing Secrets Dataset 100 (DSD100).
 %
-% It was initially prepared for the task of "professionally-produced 
+% It was initially prepared for the task of "professionally-produced
 % music recordings (MUS)" of the fifth community-based Signal Separation
 % Evaluation Campaign (SiSEC 2015) (https://sisec.inria.fr/).
 %
-% This function should be used along with the Demixing Secret Dataset 100 
-% (DSD100) for the purposed of music source separation . The file 
-% "DSD100_separate_and_eval.m" should be placed in a root folder, along with the 
+% This function should be used along with the Demixing Secret Dataset 100
+% (DSD100) for the purposed of music source separation . The file
+% "DSD100_separate_and_eval.m" should be placed in a root folder, along with the
 % folder "DSD100" and the separation function to be evaluated.
-% 
-% The separation function should be named "myfunction.m," placed in the 
+%
+% The separation function should be named "myfunction.m," placed in the
 % root folder, and have the following syntax:
-%   [bass, drums, other, vocals, accompaniment] = myfunction(mixture, fs) 
-% where "mixture" is a matrix of size [#samples, #channels] corresponding 
-% to the mixture, "fs" is the corresponding sampling frequency in Hz, and 
-% "bass," "drums," "other," "vocals," and "accompaniment" are matrices of 
-% same size as the mixture corresponding to the estimates, i.e., the bass, 
-% the drums, the other instruments, the vocals, and the full accompaniment 
-% (i.e., bass+drums+other), respectively. If one or more sources are not 
-% meant to be estimated, the function should return an empty matrix (i.e., 
-% []). Any other parameter of the algorithm should be defined internally. 
-% 
+%   [bass, drums, other, vocals, accompaniment] = myfunction(mixture, fs)
+% where "mixture" is a matrix of size [#samples, #channels] corresponding
+% to the mixture, "fs" is the corresponding sampling frequency in Hz, and
+% "bass," "drums," "other," "vocals," and "accompaniment" are matrices of
+% same size as the mixture corresponding to the estimates, i.e., the bass,
+% the drums, the other instruments, the vocals, and the full accompaniment
+% (i.e., bass+drums+other), respectively. If one or more sources are not
+% meant to be estimated, the function should return an empty matrix (i.e.,
+% []). Any other parameter of the algorithm should be defined internally.
+%
 % The evaluation function should then be called simply as follows:
 %  DSD100_separate_and_eval.m
 %
-% The function loops over all the 100 songs of the MSD100 data set, and, 
-% for each song, for both the "Dev" and "Test" subsets, performs source 
-% separation on the mixture "mixture.wav" from the folder "Mixtures" using 
-% the separation function "myfunction.m" and saves the estimates as 
-% "bass.wav," "drums.wav," "other.wav," and "vocals.wav" (if estimated) to 
-% the folder "Estimates." The function then measures the separation 
-% performance using the BSS Eval toolbox 3.0 (included in this function) 
-% and the sources from the folder "Sources," and saves the results (i.e., 
-% SDR, ISR, SIR, and SAR) in the file "results.mat," including the song 
-% name and the processing time, along with the estimates to the folder 
-% "Estimates". The function also saves the results for all the songs in a 
+% The function loops over all the 100 songs of the MSD100 data set, and,
+% for each song, for both the "Dev" and "Test" subsets, performs source
+% separation on the mixture "mixture.wav" from the folder "Mixtures" using
+% the separation function "myfunction.m" and saves the estimates as
+% "bass.wav," "drums.wav," "other.wav," and "vocals.wav" (if estimated) to
+% the folder "Estimates." The function then measures the separation
+% performance using the BSS Eval toolbox 3.0 (included in this function)
+% and the sources from the folder "Sources," and saves the results (i.e.,
+% SDR, ISR, SIR, and SAR) in the file "results.mat," including the song
+% name and the processing time, along with the estimates to the folder
+% "Estimates". The function also saves the results for all the songs in a
 % single file "result.mat" to the root folder, along with this function.
-% We would like to thank Emmanuel Vincent for giving us the permission to 
-% use the BSS Eval toolbox 3.0; 
-% 
+% We would like to thank Emmanuel Vincent for giving us the permission to
+% use the BSS Eval toolbox 3.0;
+%
 % If you use this script, please reference the following paper
 %
 %@inproceedings{SiSEC2015,
@@ -53,8 +53,8 @@
 %  YEAR = {2015},
 %  MONTH = Aug,
 %}
-% 
-% A more adequate reference will soon be given at sisec.inria.fr 
+%
+% A more adequate reference will soon be given at sisec.inria.fr
 % please check there and provide the one provided.
 %
 % Original Author: Zafar Rafii, zafarrafii@gmail.com
@@ -75,24 +75,26 @@ result = struct;
 for i = 1:numel(subsets_names)
     mixtures_folder = fullfile(dataset_folder,'Mixtures',subsets_names{i});
     mixtures_dir = dir(mixtures_folder);
-    n = numel(mixtures_dir)-2;
+    mixtures_dir_flags = [mixtures_dir.isdir]
+    % Extract only those that are directories.
+    mixtures_dir = mixtures_dir(mixtures_dir_flags)
+    n = numel(mixtures_dir);
     estimates_folder = fullfile(pwd,sprintf('Estimates%s',method_name),subsets_names{i});
     mkdir(estimates_folder)
     sources_folder = fullfile(dataset_folder,'Sources',subsets_names{i});
     for j = 1:n
-        mixture_name = mixtures_dir(j+2).name;
+        mixture_name = mixtures_dir(j).name;
         disp([subsets_names{i},': ',num2str(j),'/',num2str(n),' ',mixture_name])
         mixture_file = fullfile(mixtures_folder,mixture_name,'mixture.wav');
         [mixture,fs] = wavread(mixture_file); %#ok<*DWVRD>
 
-        
         [l,c] = size(mixture);
         tic
-        
+
         [output{1},output{2},output{3},output{4},output{5}] = myfunction(mixture,fs);
         time = toc;
         clear mixture
-        
+
         estimate_folder = fullfile(estimates_folder,mixture_name);
         mkdir(estimate_folder)
         estimates = zeros(l,c,0);
@@ -103,7 +105,7 @@ for i = 1:numel(subsets_names)
                 estimate_file = fullfile(estimate_folder,[sources_names{k},'.wav']);
                 wavwrite(estimate,fs,estimate_file) %#ok<*DWVWR>
                 estimate = repmat(estimate,[1,3-size(estimate,2)]);
-                
+
                 estimate = estimate(1:l,1:c);
             else
                 estimate = zeros(l,c);
@@ -111,7 +113,7 @@ for i = 1:numel(subsets_names)
             estimates = cat(3,estimates,estimate);
             clear estimate
         end
-        
+
         source_folder = fullfile(sources_folder,mixture_name);
         sources = zeros(l,c,0);
         accompaniment = zeros(l,c);
@@ -128,7 +130,7 @@ for i = 1:numel(subsets_names)
         source = repmat(source,[1,3-size(source,2)]);
         sources = cat(3,sources,source,accompaniment);
         clear source accompaniment
-        
+
         [SDR,ISR,SIR,SAR] = bss_eval(estimates,sources,30*fs,15*fs);
         clear estimates sources
         results = struct;
