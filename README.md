@@ -9,8 +9,6 @@ quality of your method on the DSD100.
 
 The function `DSD100_separate_and_eval.m` should be used along with the
 Demixing Secret Dataset 100 (DSD100) for the purposed of music source separation.
-The file "DSD100_separate_and_eval.m" should be placed in a root folder, along with the
-folder "DSD100" and the separation function to be evaluated.
 
 The separation function should be named `myfunction.m` placed in the
 root folder, and have the following syntax:
@@ -42,16 +40,14 @@ and the sources from the folder "Sources," and saves the results (i.e.,
 SDR, ISR, SIR, and SAR) in the file "results.mat," including the song
 name and the processing time, along with the estimates to the folder
 "Estimates". The function also saves the results for all the songs in a
-single file "result.mat" to the root folder, along with this function.
+single file "result.mat" to the estiamtes root folder.
 
 ### Evaluate only
 
 If you already have generated the estimates before (e.g. by using the [DSD100 python package]()
-you can run `DSD100_only_eval.m` separately. You therefore should place the file in a folder,
-along with the folder "DSD100" dataset and the folder, called `YOURFOLDER`, containing your
-results to evaluate.
+you can run `DSD100_only_eval.m` separately.
 
-The folder `YOURFOLDER` should have exactly the same structure as the
+Your estimates folder should have exactly the same structure as the
 DSD100/Sources folder, the matching is case sensitive. In each directory,
 there should be the separated sources estimates whose quality is to be
 evaluated. There is the possibility of not including all sources, and
@@ -68,7 +64,7 @@ for each song, for both the "Dev" and "Test" subsets, performs evaluation
 using the BSS Eval toolbox 3.0 (included in this function) and saves the
 results (i.e. SDR, ISR, SIR, and SAR) in the file "results.mat," including
 the song name. The function also saves the results for all the songs in a
-single file "resultX.mat" to the root folder, along with this function.
+single file "resultX.mat" to the estimates root folder.
 
 ### References
 
