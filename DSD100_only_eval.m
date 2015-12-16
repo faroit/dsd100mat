@@ -4,12 +4,7 @@
 % music recordings (MUS)" of the fifth community-based Signal Separation
 % Evaluation Campaign (SiSEC 2015) (https://sisec.inria.fr/).
 %
-% This function should be used along with the DSD100. The file
-% "DSD100_only_eval.m" should be placed in a root folder, along with the
-% folder "DSD100" and the folder, called YOURFOLDER here, containing your
-% results to evaluate.
-%
-% The folder YOURFOLDER should have exactly the same structure as the
+% The ESTIMATES_FOLDER should have exactly the same structure as the
 % DSD100/Sources folder, the matching is case sensitive. In each directory,
 % there should be the separated sources estimates whose quality is to be
 % evaluated. There is the possibility of not including all sources, and
@@ -50,27 +45,29 @@
 
 function dsd100_only_eval
 
-estimates_name = 'Estimates'; %here provide the name of the directory to eval
+% here provide the path to DSD100 dir
+dataset_folder = fullfile('../DSD100-SAMPLE');
+% here provide the path to the directory to eval
+
+estimates_folder = fullfile('../Estimates'); 
 
 warning('off','all')
-dataset_folder = fullfile(pwd,'.');
 subsets_names = {'Dev','Test'};
 sources_names = {'bass','drums','other','vocals','accompaniment'};
 result = struct;
 for subset_index = 1:2
     sources_folder = fullfile(dataset_folder,'Sources',subsets_names{subset_index});
-    estimates_folder = fullfile(dataset_folder,estimates_name,subsets_names{subset_index});
-    estimates_list = dir(estimates_folder);
-    % Extract only those that are directories.
-    estimates_list = estimates_list([estimates_list.isdir])
-    estimates_names = {estimates_list.name}';
+    estimates_subset_folder = fullfile(estimates_folder,subsets_names{subset_index});
+    estimates_list = dir(estimates_subset_folder);
+    estimates_list = estimates_list([estimates_list.isdir]);
+    estimates_names = {estimates_list.name};
     estimates_names(ismember(estimates_names,{'.','..'})) = [];
     for song_index = 1:numel(estimates_names)
-        disp([subsets_names{subset_index},' ',num2str(song_index),'/',num2str(50),' ',estimates_names(song_index)])
+        disp([subsets_names{subset_index},' ',num2str(song_index),'/',num2str(50),' ',estimates_names{song_index}])
 
         sources_data = [];
         for source_index = 1:4
-            source_file = fullfile(sources_folder,estimates_names(song_index),[sources_names{source_index},'.wav']);
+            source_file = fullfile(sources_folder,estimates_names{song_index},[sources_names{source_index},'.wav']);
             [source_data,source_sampling] = audioread(source_file);
             [sources_samples,sources_channels] = size(source_data);
             source_data = repmat(source_data,[1,3-sources_channels]);
@@ -81,7 +78,7 @@ for subset_index = 1:2
 
         estimates_data = zeros(sources_samples,2,5);
         for estimate_index = 1:5
-            estimate_file = fullfile(estimates_folder,estimates_names(song_index),[sources_names{estimate_index},'.wav']);
+            estimate_file = fullfile(estimates_folder,estimates_names{song_index},[sources_names{estimate_index},'.wav']);
             if exist(estimate_file,'file') == 2
                 estimate_data = audioread(estimate_file);
                 [estimate_samples,estimate_channels] = size(estimate_data);
@@ -96,19 +93,19 @@ for subset_index = 1:2
         [SDR,ISR,SIR,SAR] = bss_eval(estimates_data,sources_data,30*source_sampling,15*source_sampling);
         clear estimates_data sources_data
         results = struct;
-        results.name = estimates_names(song_index);
+        results.name = estimates_names{song_index};
         for source_index = 1:5
             results.(sources_names{source_index}).sdr = SDR(source_index,:);
             results.(sources_names{source_index}).isr = ISR(source_index,:);
             results.(sources_names{source_index}).sir = SIR(source_index,:);
             results.(sources_names{source_index}).sar = SAR(source_index,:);
         end
-        results_file = fullfile(estimates_folder,estimates_names(song_index),'results.mat');
+        results_file = fullfile(estimates_subset_folder,estimates_names{song_index},'results.mat');
         save(results_file,'results')
         result.(lower(subsets_names{subset_index}))(song_index).results  = results;
     end
 end
-result_file = fullfile(dataset_folder,[estimates_name,'.mat']);
+result_file = fullfile(dataset_folder,[estimates_folder,'.mat']);
 save(result_file,'result')
 warning('on','all')
 

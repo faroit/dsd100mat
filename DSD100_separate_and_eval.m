@@ -58,11 +58,11 @@
 % please check there and provide the one provided.
 %
 % Original Author: Zafar Rafii, zafarrafii@gmail.com
-% Last updated by A. Liutkus on December 7, 2015
+% Last updated by A.Liutkus on December 7, 2015
 
 function DSD100_separate_and_eval
 
-method_name='MYMETHOD' % change your method name here
+method_name = 'MYMETHOD'; % change your method name here
 
 warning('off','all')
 dataset_folder = fullfile(pwd,'DSD100');
@@ -76,8 +76,8 @@ for i = 1:numel(subsets_names)
     mixtures_folder = fullfile(dataset_folder,'Mixtures',subsets_names{i});
     mixtures_dir = dir(mixtures_folder);
     % Extract only those that are directories.
-    mixtures_dir = mixtures_dir([mixtures_dir.isdir])
-    mixtures_names = {mixtures_dir.name}';
+    mixtures_dir = mixtures_dir([mixtures_dir.isdir]);
+    mixtures_names = {mixtures_dir.name};
     mixtures_names(ismember(mixtures_names,{'.','..'})) = [];
 
     n = numel(mixtures_names);
@@ -85,8 +85,8 @@ for i = 1:numel(subsets_names)
     mkdir(estimates_folder)
     sources_folder = fullfile(dataset_folder,'Sources',subsets_names{i});
     for j = 1:n
-        disp([subsets_names{i},': ',num2str(j),'/',num2str(n),' ',mixtures_names(j)])
-        mixture_file = fullfile(mixtures_folder,mixtures_names(j),'mixture.wav');
+        disp([subsets_names{i},': ',num2str(j),'/',num2str(n),' ',mixtures_names{j}])
+        mixture_file = fullfile(mixtures_folder,mixtures_names{j},'mixture.wav');
         [mixture,fs] = wavread(mixture_file); %#ok<*DWVRD>
 
         [l,c] = size(mixture);
@@ -96,7 +96,7 @@ for i = 1:numel(subsets_names)
         time = toc;
         clear mixture
 
-        estimate_folder = fullfile(estimates_folder,mixtures_names(j));
+        estimate_folder = fullfile(estimates_folder,mixtures_names{j});
         mkdir(estimate_folder)
         estimates = zeros(l,c,0);
         for k = 1:5
@@ -115,7 +115,7 @@ for i = 1:numel(subsets_names)
             clear estimate
         end
 
-        source_folder = fullfile(sources_folder,mixtures_names(j));
+        source_folder = fullfile(sources_folder,mixtures_names{j});
         sources = zeros(l,c,0);
         accompaniment = zeros(l,c);
         for k = 1:3
@@ -135,7 +135,7 @@ for i = 1:numel(subsets_names)
         [SDR,ISR,SIR,SAR] = bss_eval(estimates,sources,30*fs,15*fs);
         clear estimates sources
         results = struct;
-        results.name = mixtures_names(j);
+        results.name = mixtures_names{j};
         results.time = time;
         for k = 1:5
             results.(sources_names{k}).sdr = SDR(k,:);
@@ -148,7 +148,7 @@ for i = 1:numel(subsets_names)
         result.(lower(subsets_names{i}))(j).results  = results;
     end
 end
-result_file = fullfile(dataset_folder,sprintf('result%s.mat',method_name));
+result_file = fullfile(estimates_folder,sprintf('result%s.mat',method_name));
 save(result_file,'result')
 warning('on','all')
 
