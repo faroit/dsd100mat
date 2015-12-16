@@ -60,17 +60,17 @@ result = struct;
 for subset_index = 1:2
     sources_folder = fullfile(dataset_folder,'Sources',subsets_names{subset_index});
     estimates_folder = fullfile(dataset_folder,estimates_name,subsets_names{subset_index});
-    song_list = dir(estimates_folder);
-    song_list_flags = [song_list.isdir]
+    estimates_list = dir(estimates_folder);
     % Extract only those that are directories.
-    song_list = song_list(song_list_flags)
-    for song_index = 1:numel(songs_list)
-        song_name = songs_list(song_index).name;
-        disp([subsets_names{subset_index},' ',num2str(song_index),'/',num2str(50),' ',song_name])
+    estimates_list = estimates_list([estimates_list.isdir])
+    estimates_names = {estimates_list.name}';
+    estimates_names(ismember(estimates_names,{'.','..'})) = [];
+    for song_index = 1:numel(estimates_names)
+        disp([subsets_names{subset_index},' ',num2str(song_index),'/',num2str(50),' ',estimates_names(song_index)])
 
         sources_data = [];
         for source_index = 1:4
-            source_file = fullfile(sources_folder,song_name,[sources_names{source_index},'.wav']);
+            source_file = fullfile(sources_folder,estimates_names(song_index),[sources_names{source_index},'.wav']);
             [source_data,source_sampling] = audioread(source_file);
             [sources_samples,sources_channels] = size(source_data);
             source_data = repmat(source_data,[1,3-sources_channels]);
@@ -81,7 +81,7 @@ for subset_index = 1:2
 
         estimates_data = zeros(sources_samples,2,5);
         for estimate_index = 1:5
-            estimate_file = fullfile(estimates_folder,song_name,[sources_names{estimate_index},'.wav']);
+            estimate_file = fullfile(estimates_folder,estimates_names(song_index),[sources_names{estimate_index},'.wav']);
             if exist(estimate_file,'file') == 2
                 estimate_data = audioread(estimate_file);
                 [estimate_samples,estimate_channels] = size(estimate_data);
@@ -96,14 +96,14 @@ for subset_index = 1:2
         [SDR,ISR,SIR,SAR] = bss_eval(estimates_data,sources_data,30*source_sampling,15*source_sampling);
         clear estimates_data sources_data
         results = struct;
-        results.name = song_name;
+        results.name = estimates_names(song_index);
         for source_index = 1:5
             results.(sources_names{source_index}).sdr = SDR(source_index,:);
             results.(sources_names{source_index}).isr = ISR(source_index,:);
             results.(sources_names{source_index}).sir = SIR(source_index,:);
             results.(sources_names{source_index}).sar = SAR(source_index,:);
         end
-        results_file = fullfile(estimates_folder,song_name,'results.mat');
+        results_file = fullfile(estimates_folder,estimates_names(song_index),'results.mat');
         save(results_file,'results')
         result.(lower(subsets_names{subset_index}))(song_index).results  = results;
     end

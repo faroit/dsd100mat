@@ -75,17 +75,18 @@ result = struct;
 for i = 1:numel(subsets_names)
     mixtures_folder = fullfile(dataset_folder,'Mixtures',subsets_names{i});
     mixtures_dir = dir(mixtures_folder);
-    mixtures_dir_flags = [mixtures_dir.isdir]
     % Extract only those that are directories.
-    mixtures_dir = mixtures_dir(mixtures_dir_flags)
-    n = numel(mixtures_dir);
+    mixtures_dir = mixtures_dir([mixtures_dir.isdir])
+    mixtures_names = {mixtures_dir.name}';
+    mixtures_names(ismember(mixtures_names,{'.','..'})) = [];
+
+    n = numel(mixtures_names);
     estimates_folder = fullfile(pwd,sprintf('Estimates%s',method_name),subsets_names{i});
     mkdir(estimates_folder)
     sources_folder = fullfile(dataset_folder,'Sources',subsets_names{i});
     for j = 1:n
-        mixture_name = mixtures_dir(j).name;
-        disp([subsets_names{i},': ',num2str(j),'/',num2str(n),' ',mixture_name])
-        mixture_file = fullfile(mixtures_folder,mixture_name,'mixture.wav');
+        disp([subsets_names{i},': ',num2str(j),'/',num2str(n),' ',mixtures_names(j)])
+        mixture_file = fullfile(mixtures_folder,mixtures_names(j),'mixture.wav');
         [mixture,fs] = wavread(mixture_file); %#ok<*DWVRD>
 
         [l,c] = size(mixture);
@@ -95,7 +96,7 @@ for i = 1:numel(subsets_names)
         time = toc;
         clear mixture
 
-        estimate_folder = fullfile(estimates_folder,mixture_name);
+        estimate_folder = fullfile(estimates_folder,mixtures_names(j));
         mkdir(estimate_folder)
         estimates = zeros(l,c,0);
         for k = 1:5
@@ -114,7 +115,7 @@ for i = 1:numel(subsets_names)
             clear estimate
         end
 
-        source_folder = fullfile(sources_folder,mixture_name);
+        source_folder = fullfile(sources_folder,mixtures_names(j));
         sources = zeros(l,c,0);
         accompaniment = zeros(l,c);
         for k = 1:3
@@ -134,7 +135,7 @@ for i = 1:numel(subsets_names)
         [SDR,ISR,SIR,SAR] = bss_eval(estimates,sources,30*fs,15*fs);
         clear estimates sources
         results = struct;
-        results.name = mixture_name;
+        results.name = mixtures_names(j);
         results.time = time;
         for k = 1:5
             results.(sources_names{k}).sdr = SDR(k,:);
