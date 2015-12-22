@@ -46,10 +46,10 @@
 function dsd100_only_eval
 
 % here provide the path to DSD100 dir
-dataset_folder = fullfile('../DSD100-SAMPLE');
+dataset_folder = fullfile('./DSD100');
 % here provide the path to the directory to eval
 
-estimates_folder = fullfile('../Estimates'); 
+estimates_folder = fullfile('./Estimates');
 
 warning('off','all')
 subsets_names = {'Dev','Test'};

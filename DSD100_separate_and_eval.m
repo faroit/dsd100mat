@@ -6,9 +6,7 @@
 % Evaluation Campaign (SiSEC 2015) (https://sisec.inria.fr/).
 %
 % This function should be used along with the Demixing Secret Dataset 100
-% (DSD100) for the purposed of music source separation . The file
-% "DSD100_separate_and_eval.m" should be placed in a root folder, along with the
-% folder "DSD100" and the separation function to be evaluated.
+% (DSD100) for the purposed of music source separation.
 %
 % The separation function should be named "myfunction.m," placed in the
 % root folder, and have the following syntax:
@@ -65,7 +63,8 @@ function DSD100_separate_and_eval
 method_name = 'MYMETHOD'; % change your method name here
 
 warning('off','all')
-dataset_folder = fullfile(pwd,'DSD100');
+dataset_folder = fullfile('./DSD100');
+
 subsets_names = {'Dev','Test'};
 sources_names = {'bass','drums','other','vocals','accompaniment'};
 estimates_folder = fullfile(pwd,sprintf('Estimates%s',method_name));
