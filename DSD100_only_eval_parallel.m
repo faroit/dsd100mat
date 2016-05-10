@@ -1,30 +1,34 @@
 % This script is intended to perform the evaluation of the separation 
 % quality on the Demixing Secrets Dataset 100 (DSD100).
-% It was initially prepared for the task of "professionally-produced 
-% music recordings (MUS)" of the fifth community-based Signal Separation
-% Evaluation Campaign (SiSEC 2015) (https://sisec.inria.fr/).
+% It is primarily intended for the task of "professionally-produced 
+% music recordings (MUS)" of community-based Signal Separation
+% Evaluation Campaign (SiSEC) (https://sisec.inria.fr/).
 % 
-% This function should be used along with the DSD100. The file 
-% "DSD100_only_eval.m" should be placed in a root folder, along with the 
-% folder "DSD100" and the folder, called YOURFOLDER here, containing your
-% results to evaluate.
+% This function should be used along with the DSD100. 
+% * The variable base_estimates_directory stand for the root folder in
+% which the script should find subdirectories containing the results of the
+% methods you want to evaluate. each of these subdirectories must contain
+% the exact same file structure than the DSD dataset, as produced by the
+% DSD100_separate_and_eval_parallel.m script or the python dsd100 package.
+% The matching is case sensitive. There is the possibility of not including 
+% all sources, and also to include the "accompaniment" source, defined as 
+% the sum of all sources except vocals.
 % 
-% The folder YOURFOLDER should have exactly the same structure as the 
-% DSD100/Sources folder, the matching is case sensitive. In each directory,
-% there should be the separated sources estimates whose quality is to be
-% evaluated. There is the possibility of not including all sources, and
-% also to include the "accompaniment" source, defined as the sum of all
-% sources except vocals.
+% * the variable dataset_folder links to the root folder of the DSD100
+% dataset.
 % 
 % The evaluation function should then be called simply as follows:
 %   DSD100_only_eval.m
-% The function loops over all the 100 songs of the MSD100 data set, and, 
+% The function loops over all the 100 songs of the DSD100 data set, and, 
 % for each song, for both the "Dev" and "Test" subsets, performs evaluation
 % using the BSS Eval toolbox 3.0 (included in this function) and saves the
 % results (i.e. SDR, ISR, SIR, and SAR) in the file "results.mat," including 
 % the song name. The function also saves the results for all the songs in a 
 % single file "resultX.mat" to the root folder, along with this function.
-
+%
+% A first evaluation is performed for the 4 sources vocals/bass/drums
+% and other, and a second is performed for accompaniment.
+%
 % We would like to thank Emmanuel Vincent for giving us the permission to 
 % use the BSS Eval toolbox 3.0; 
 % 
@@ -45,75 +49,138 @@
 % A more adequate reference will soon be given at sisec.inria.fr 
 % please check there and provide the one provided.
 %
-% Original Author: Zafar Rafii, zafarrafii@gmail.com
-% Last updated by A. Liutkus on December 7, 2015
+% Original Author: Zafar Rafii
+% Last updated by A. Liutkus on May 10th, 2016
 
-function dsd100_only_eval
+function DSD100_only_eval_parallel
 
-estimates_name = 'EstimatesKAM_fast'; %here provide the name of the directory to eval
-base_directory = pwd;
-parpool('local')
+%here provide the name of the directory that contains all results from your
+%different techniques as subfolders
+base_estimates_directory = '/here/a/link/to/your/results/rootfolder';
+
+%here, provide the root folder for the DSD100 dataset.
+dataset_folder = '/media/aliutkus/Reserved/DSD100';
+
+
 warning('off','all')
-dataset_folder = fullfile(pwd,'DSD100');
 subsets_names = {'Dev','Test'};
 sources_names = {'bass','drums','other','vocals','accompaniment'};
-result = struct; 
-for subset_index = 1:2
-    sources_folder = fullfile(dataset_folder,'Sources',subsets_names{subset_index});
-    estimates_folder = fullfile(base_directory,estimates_name,subsets_names{subset_index});
-    songs_list = dir(estimates_folder);
-    results_set=cell(50,1);
-    parfor song_index = 1:50
-        song_name = songs_list(song_index+2).name;
-        disp([subsets_names{subset_index},' ',num2str(song_index),'/',num2str(50),' ',song_name])
+
+
+methods_folders = dir(base_estimates_directory);
+isub = [methods_folders(:).isdir]; %# returns logical vector
+methods_folders = {methods_folders(isub).name}';
+methods_folders(ismember(methods_folders,{'.','..'})) = [];
+
+%comment this line if you don't want to use parallel toolbox. This may
+%happen for memory usage reasons. Also, modify this line if you don't want
+%to use the maximum number of cores, which is the default behaviour.
+parpool('local');
+
+for imethod_name = 1:length(methods_folders )
+    %for each method (subfolder of the results root folder provided)
+    method_name = methods_folders{imethod_name};
+    fprintf('\n computing results for method %s\n', method_name)
+    result = struct;
+    
+    %loop over dev and test subsets
+    for subset_index = 1:2
+        sources_folder = fullfile(dataset_folder,'Sources',subsets_names{subset_index});
+        estimates_folder = fullfile(base_estimates_directory,method_name,subsets_names{subset_index});
+        songs_list = dir(estimates_folder);
+        results_set=cell(50,1);
         
-        sources_data = [];
-        for source_index = 1:4
-            source_file = fullfile(sources_folder,song_name,[sources_names{source_index},'.wav']);
-            [source_data,source_sampling] = audioread(source_file);
-            [sources_samples,sources_channels] = size(source_data);
-            source_data = repmat(source_data,[1,3-sources_channels]);
-            sources_data = cat(3,sources_data,source_data);
-        end
-        sources_data = cat(3,sources_data,sum(sources_data(:,:,1:3),3));
-        
-        estimates_data = zeros(sources_samples,2,5);
-        for estimate_index = 1:5
-            estimate_file = fullfile(estimates_folder,song_name,[sources_names{estimate_index},'.wav']);
-            if exist(estimate_file,'file') == 2
-                estimate_data = audioread(estimate_file);
+        %loop over songs
+        parfor song_index = 1:50
+            song_name = songs_list(song_index+2).name;
+            disp([subsets_names{subset_index},' ',num2str(song_index),'/',num2str(50),' ',song_name])
+            
+            %load the sources references
+            sources_data = [];
+            for source_index = 1:4
+                source_file = fullfile(sources_folder,song_name,[sources_names{source_index},'.wav']);
+                [source_data,source_sampling] = audioread(source_file);
+                [sources_samples,sources_channels] = size(source_data);
+                source_data = repmat(source_data,[1,3-sources_channels]);
+                sources_data = cat(3,sources_data,source_data);
+            end
+            %build accompaniment reference as sum of sources
+            accompaniment_data = sum(sources_data(:,:,1:3),3);
+            
+            %get estimated sources
+            sources_estimates_data = zeros(sources_samples,2,4);
+            for estimate_index = 1:4
+                estimate_file = fullfile(estimates_folder,song_name,[sources_names{estimate_index},'.wav']);
+                if exist(estimate_file,'file') == 2
+                    estimate_data = audioread(estimate_file);
+                    [estimate_samples,estimate_channels] = size(estimate_data);
+                    %if mono estimate: duplicate it to get stereo
+                    estimate_data = repmat(estimate_data,[1,3-estimate_channels]);
+                    
+                    estimates_samples = min(size(sources_estimates_data,1),estimate_samples);
+                    sources_estimates_data = sources_estimates_data(1:estimates_samples,:,:);
+                    sources_estimates_data(:,:,estimate_index) = estimate_data(1:estimates_samples,:);
+                end
+            end
+            accompaniment_estimate_file = fullfile(estimates_folder,song_name,[sources_names{5},'.wav']);
+            if exist(accompaniment_estimate_file,'file') == 2
+                %If there's an accompaniment estimated file, load it.
+                estimate_data = audioread(accompaniment_estimate_file);
                 [estimate_samples,estimate_channels] = size(estimate_data);
                 estimate_data = repmat(estimate_data,[1,3-estimate_channels]);
-                estimates_samples = min(size(estimates_data,1),estimate_samples);
-                estimates_data = estimates_data(1:estimates_samples,:,:);
-                estimates_data(:,:,estimate_index) = estimate_data(1:estimates_samples,:);
+                estimates_samples = min(size(sources_estimates_data,1),estimate_samples);
+                sources_estimates_data = sources_estimates_data(1:estimates_samples,:,:);
+                accompaniment_estimates_data = estimate_data(1:estimates_samples,:);
+            else
+                %else: sum sources estimates except vocals
+                accompaniment_estimates_data = sum(sources_estimates_data(:,:,1:3),3);
             end
-        end
-        
-        [SDR,ISR,SIR,SAR] = bss_eval(estimates_data,sources_data,30*source_sampling,15*source_sampling);
-        results_set{song_index} = struct;
-        results_set{song_index}.name = song_name;
-        for source_index = 1:5
-            results_set{song_index}.(sources_names{source_index}).sdr = SDR(source_index,:);
-            results_set{song_index}.(sources_names{source_index}).isr = ISR(source_index,:);
-            results_set{song_index}.(sources_names{source_index}).sir = SIR(source_index,:);
-            results_set{song_index}.(sources_names{source_index}).sar = SAR(source_index,:);
-        end
-        
-    end
-    for song_index=1:50
-        song_name = songs_list(song_index+2).name;
-        results_file = fullfile(estimates_folder,song_name,'results.mat');
-        results = results_set{song_index};
-        save(results_file,'results')
-        result.(lower(subsets_names{subset_index}))(song_index).results =results_set{song_index};
-    end
-end
-result_file = fullfile(dataset_folder,[estimates_name,'.mat']);
-save(result_file,'result')
-warning('on','all')
+            tic
+            %estimate quality for accompaniment
+            [SDRac,ISRac,SIRac,SARac] = bss_eval(cat(3,sources_estimates_data(:,:,4),accompaniment_estimates_data) ,...
+                cat(3,sources_data(:,:,4),accompaniment_data),...
+                30*source_sampling,15*source_sampling);
 
-function [SDR,ISR,SIR,SAR] = bss_eval(ie,i,win,ove)
+            %estimate quality for sources
+            [SDR,ISR,SIR,SAR] = bss_eval(sources_estimates_data,sources_data,...
+                30*source_sampling,15*source_sampling);
+            toc
+            
+            %append the quality of accompaniment to the results for sources
+            SDR(end+1,:) = SDRac(2,:);
+            ISR(end+1,:) = ISRac(2,:);
+            SIR(end+1,:) = SIRac(2,:);
+            SAR(end+1,:) = SARac(2,:);
+            
+            %build the result structure for this song
+            results_set{song_index} = struct;
+            results_set{song_index}.name = song_name;
+            for source_index = 1:5
+                results_set{song_index}.(sources_names{source_index}).sdr = SDR(source_index,:);
+                results_set{song_index}.(sources_names{source_index}).isr = ISR(source_index,:);
+                results_set{song_index}.(sources_names{source_index}).sir = SIR(source_index,:);
+                results_set{song_index}.(sources_names{source_index}).sar = SAR(source_index,:);
+            end
+            
+        end
+        % now gather all the results for the subset
+        for song_index=1:50
+            song_name = songs_list(song_index+2).name;
+            results_file = fullfile(estimates_folder,song_name,'results.mat');
+            results = results_set{song_index};
+            save(results_file,'results')
+            result.(lower(subsets_names{subset_index}))(song_index).results =results_set{song_index};
+        end
+    end
+    %save the results for the method
+    result_file = fullfile(base_estimates_directory,[method_name,'.mat']);
+    save(result_file,'result')
+    warning('on','all')
+end
+
+
+%Now, bsseval code
+function [SDR,ISR,SIR,SAR,Gj,G] = bss_eval(ie,i,win,ove,Gj,G)
 
 [nsampl,~,nsrc] = size(ie);
 nwin = floor((nsampl-win+1+ove)/ove);
@@ -121,32 +188,45 @@ SDR = zeros(nsrc,nwin);
 ISR = zeros(nsrc,nwin);
 SIR = zeros(nsrc,nwin);
 SAR = zeros(nsrc,nwin);
+if (nargin == 4) || isempty(Gj) || isempty(G)
+    Gj = cell(nsrc,nwin);
+    G = cell(nwin,1);
+end
 for k = 1:nwin
     K = (k-1)*ove+1:(k-1)*ove+win;
-    [SDR(:,k),ISR(:,k),SIR(:,k),SAR(:,k)] = bss_eval_images(ie(K,:,:),i(K,:,:));
+    [SDR(:,k),ISR(:,k),SIR(:,k),SAR(:,k),Gj_k,G_k] = bss_eval_images(ie(K,:,:),i(K,:,:),Gj(:,k),G{k});
+    Gj(:,k)=Gj_k;
+    G{k}=G_k;
 end
 
-function [SDR,ISR,SIR,SAR] = bss_eval_images(ie,i)
-
+function [SDR,ISR,SIR,SAR] = bss_eval_images(ie,i,Gj,G)
 nsrc = size(ie,3);
+if nargin == 2
+    %if the G matrix is not given, initialize it to empty
+    Gj = cell(nsrc,1);
+    G = [];
+end
 SDR = zeros(nsrc,1);
 ISR = zeros(nsrc,1);
 SIR = zeros(nsrc,1);
 SAR = zeros(nsrc,1);
 for j = 1:nsrc
-    [s_true,e_spat,e_interf,e_artif] = bss_decomp_mtifilt(ie(:,:,j),i,j,512);
+    [s_true,e_spat,e_interf,e_artif,Gj_temp,G] = bss_decomp_mtifilt(ie(:,:,j),i,j,512,Gj{j},G);
+    Gj{j}=Gj_temp;
     [SDR(j,1),ISR(j,1),SIR(j,1),SAR(j,1)] = bss_image_crit(s_true,e_spat,e_interf,e_artif);
 end
 
-function [s_true,e_spat,e_interf,e_artif] = bss_decomp_mtifilt(se,s,j,flen)
+function [s_true,e_spat,e_interf,e_artif,Gj,G] = bss_decomp_mtifilt(se,s,j,flen,Gj,G)
 
 nchan = size(se,2);
 s_true = [s(:,:,j);zeros(flen-1,nchan)];
-e_spat = project(se,s(:,:,j),flen)-s_true;
-e_interf = project(se,s,flen)-s_true-e_spat;
+[e_spat,Gj] = project(se,s(:,:,j),flen,Gj);
+e_spat=e_spat-s_true;
+[e_interf,G] = project(se,s,flen,G);
+e_interf=e_interf-s_true-e_spat;
 e_artif = [se;zeros(flen-1,nchan)]-s_true-e_spat-e_interf;
 
-function sproj = project(se,s,flen)
+function [sproj,G] = project(se,s,flen,G)
 warning('off','all')
 [nsampl,nchan,nsrc] = size(s);
 s = reshape(s,[nsampl,nchan*nsrc]);
@@ -155,18 +235,18 @@ se = [se;zeros(flen-1,nchan)];
 fftlen = 2^nextpow2(nsampl+flen-1);
 sf = fft(s',fftlen,2);
 sef = fft(se',fftlen,2);
-
-G = zeros(nchan*nsrc*flen);
-for k1 = 0:nchan*nsrc-1
-    for k2 = 0:k1
-        ssf = sf(k1+1,:).*conj(sf(k2+1,:));
-        ssf = real(ifft(ssf));
-        ss = toeplitz(ssf([1,fftlen:-1:fftlen-flen+2]),ssf(1:flen));
-        G(k1*flen+1:k1*flen+flen,k2*flen+1:k2*flen+flen) = ss;
-        G(k2*flen+1:k2*flen+flen,k1*flen+1:k1*flen+flen) = ss';
+if isempty(G)
+    G = zeros(nchan*nsrc*flen);
+    for k1 = 0:nchan*nsrc-1
+        for k2 = 0:k1
+            ssf = sf(k1+1,:).*conj(sf(k2+1,:));
+            ssf = real(ifft(ssf));
+            ss = toeplitz(ssf([1,fftlen:-1:fftlen-flen+2]),ssf(1:flen));
+            G(k1*flen+1:k1*flen+flen,k2*flen+1:k2*flen+flen) = ss;
+            G(k2*flen+1:k2*flen+flen,k1*flen+1:k1*flen+flen) = ss';
+        end
     end
 end
-
 D = zeros(nchan*nsrc*flen,nchan);
 for k = 0:nchan*nsrc-1
     for i = 1:nchan
