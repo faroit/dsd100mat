@@ -12,7 +12,7 @@ We provide two functions
 Function Name  | Description
 ------------- | -------------
 `DSD100_separate_and_eval.m`  | Parse the DSD100 and generates estimates with a user provided function. Evaluates with BSS_EVAL and saves results.
-`DSD100_only_eval.m`  | Only evaluates existing estimates folder with BSS_EVAL and saves results. Good in combination with the [DSD100 python package](https://github.com/faroit/dsd100py)
+`DSD100_eval_only.m`  | Only evaluates existing estimates (also multiple methods) with BSS_EVAL and saves results. Good in combination with the [DSD100 python package](https://github.com/faroit/dsd100py)
 
 ### Separate and Evaluate
 
@@ -55,19 +55,21 @@ single file "result.mat" to the estimates folder, along with this function.
 ### Evaluate only
 
 If you already have generated the estimates before (e.g. by using the [DSD100 python package](https://github.com/faroit/dsd100py)
-you can run `DSD100_only_eval.m` separately. You therefore should place the file in a folder,
-along with your estimates, containing your results to evaluate. Before you start please set the `dataset_folder` to point to the DSD100  folder and the `estimates_folder` to point to your estimates.
+you can run `DSD100_eval_only.m` separately. Before you start please set the
+`dataset_folder` to point to the DSD100 folder.
 
-The `estimates_folder` should have exactly the same structure as the
-DSD100/Sources folder, the matching is case sensitive. In each directory,
-there should be the separated sources estimates whose quality is to be
-evaluated. There is the possibility of not including all sources, and
-also to include the "accompaniment" source, defined as the sum of all
-sources except vocals.
+The variable ```base_estimates_directory``` stand for the root folder in
+which the script should find subdirectories containing the results of the
+methods you want to evaluate. each of these subdirectories must contain
+the exact same file structure than the DSD dataset, as produced by the
+DSD100_separate_and_eval_parallel.m script or the [DSD100 python package](https://github.com/faroit/dsd100py).
+The matching is case sensitive. There is the possibility of not including
+all sources, and also to include the "accompaniment" source, defined as
+the sum of all sources except vocals.
 
 The evaluation function should then be called simply as follows:
 ```matlab
-DSD100_only_eval.m
+DSD100_eval_only.m
 ```
 
 The function loops over all the 100 songs of the MSD100 data set, and,
@@ -76,6 +78,9 @@ using the BSS Eval toolbox 3.0 (included in this function) and saves the
 results (i.e. SDR, ISR, SIR, and SAR) in the file "results.mat," including
 the song name. The function also saves the results for all the songs in a
 single file "resultX.mat" to the estimates folder, along with this function.
+
+A first evaluation is performed for the 4 sources vocals/bass/drums
+and other, and a second is performed for accompaniment.
 
 ### References
 

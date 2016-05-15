@@ -1,37 +1,37 @@
-% This script is intended to perform the evaluation of the separation 
+% This script is intended to perform the evaluation of the separation
 % quality on the Demixing Secrets Dataset 100 (DSD100).
-% It is primarily intended for the task of "professionally-produced 
+% It is primarily intended for the task of "professionally-produced
 % music recordings (MUS)" of community-based Signal Separation
 % Evaluation Campaign (SiSEC) (https://sisec.inria.fr/).
-% 
-% This function should be used along with the DSD100. 
+%
+% This function should be used along with the DSD100.
 % * The variable base_estimates_directory stand for the root folder in
 % which the script should find subdirectories containing the results of the
 % methods you want to evaluate. each of these subdirectories must contain
 % the exact same file structure than the DSD dataset, as produced by the
 % DSD100_separate_and_eval_parallel.m script or the python dsd100 package.
-% The matching is case sensitive. There is the possibility of not including 
-% all sources, and also to include the "accompaniment" source, defined as 
+% The matching is case sensitive. There is the possibility of not including
+% all sources, and also to include the "accompaniment" source, defined as
 % the sum of all sources except vocals.
-% 
+%
 % * the variable dataset_folder links to the root folder of the DSD100
 % dataset.
-% 
+%
 % The evaluation function should then be called simply as follows:
 %   DSD100_only_eval.m
-% The function loops over all the 100 songs of the DSD100 data set, and, 
+% The function loops over all the 100 songs of the DSD100 data set, and,
 % for each song, for both the "Dev" and "Test" subsets, performs evaluation
 % using the BSS Eval toolbox 3.0 (included in this function) and saves the
-% results (i.e. SDR, ISR, SIR, and SAR) in the file "results.mat," including 
-% the song name. The function also saves the results for all the songs in a 
+% results (i.e. SDR, ISR, SIR, and SAR) in the file "results.mat," including
+% the song name. The function also saves the results for all the songs in a
 % single file "resultX.mat" to the root folder, along with this function.
 %
 % A first evaluation is performed for the 4 sources vocals/bass/drums
 % and other, and a second is performed for accompaniment.
 %
-% We would like to thank Emmanuel Vincent for giving us the permission to 
-% use the BSS Eval toolbox 3.0; 
-% 
+% We would like to thank Emmanuel Vincent for giving us the permission to
+% use the BSS Eval toolbox 3.0;
+%
 % If you use this script, please reference the following paper
 %
 %@inproceedings{SiSEC2015,
@@ -45,21 +45,21 @@
 %  YEAR = {2015},
 %  MONTH = Aug,
 %}
-% 
-% A more adequate reference will soon be given at sisec.inria.fr 
+%
+% A more adequate reference will soon be given at sisec.inria.fr
 % please check there and provide the one provided.
 %
 % Original Author: Zafar Rafii
-% Last updated by A. Liutkus on May 10th, 2016
+% Updated by A. Liutkus
 
 function DSD100_only_eval_parallel
 
 %here provide the name of the directory that contains all results from your
 %different techniques as subfolders
-base_estimates_directory = '/here/a/link/to/your/results/rootfolder';
+base_estimates_directory = 'link/to/your/results/rootfolder';
 
 %here, provide the root folder for the DSD100 dataset.
-dataset_folder = '/media/aliutkus/Reserved/DSD100';
+dataset_folder = 'DSD100';
 
 
 warning('off','all')
@@ -82,19 +82,19 @@ for imethod_name = 1:length(methods_folders )
     method_name = methods_folders{imethod_name};
     fprintf('\n computing results for method %s\n', method_name)
     result = struct;
-    
+
     %loop over dev and test subsets
     for subset_index = 1:2
         sources_folder = fullfile(dataset_folder,'Sources',subsets_names{subset_index});
         estimates_folder = fullfile(base_estimates_directory,method_name,subsets_names{subset_index});
         songs_list = dir(estimates_folder);
         results_set=cell(50,1);
-        
+
         %loop over songs
         parfor song_index = 1:50
             song_name = songs_list(song_index+2).name;
             disp([subsets_names{subset_index},' ',num2str(song_index),'/',num2str(50),' ',song_name])
-            
+
             %load the sources references
             sources_data = [];
             for source_index = 1:4
@@ -106,7 +106,7 @@ for imethod_name = 1:length(methods_folders )
             end
             %build accompaniment reference as sum of sources
             accompaniment_data = sum(sources_data(:,:,1:3),3);
-            
+
             %get estimated sources
             sources_estimates_data = zeros(sources_samples,2,4);
             for estimate_index = 1:4
@@ -116,7 +116,7 @@ for imethod_name = 1:length(methods_folders )
                     [estimate_samples,estimate_channels] = size(estimate_data);
                     %if mono estimate: duplicate it to get stereo
                     estimate_data = repmat(estimate_data,[1,3-estimate_channels]);
-                    
+
                     estimates_samples = min(size(sources_estimates_data,1),estimate_samples);
                     sources_estimates_data = sources_estimates_data(1:estimates_samples,:,:);
                     sources_estimates_data(:,:,estimate_index) = estimate_data(1:estimates_samples,:);
@@ -145,13 +145,13 @@ for imethod_name = 1:length(methods_folders )
             [SDR,ISR,SIR,SAR] = bss_eval(sources_estimates_data,sources_data,...
                 30*source_sampling,15*source_sampling);
             toc
-            
+
             %append the quality of accompaniment to the results for sources
             SDR(end+1,:) = SDRac(2,:);
             ISR(end+1,:) = ISRac(2,:);
             SIR(end+1,:) = SIRac(2,:);
             SAR(end+1,:) = SARac(2,:);
-            
+
             %build the result structure for this song
             results_set{song_index} = struct;
             results_set{song_index}.name = song_name;
@@ -161,7 +161,7 @@ for imethod_name = 1:length(methods_folders )
                 results_set{song_index}.(sources_names{source_index}).sir = SIR(source_index,:);
                 results_set{song_index}.(sources_names{source_index}).sar = SAR(source_index,:);
             end
-            
+
         end
         % now gather all the results for the subset
         for song_index=1:50
