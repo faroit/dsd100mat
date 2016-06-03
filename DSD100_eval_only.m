@@ -199,7 +199,7 @@ for k = 1:nwin
     G{k}=G_k;
 end
 
-function [SDR,ISR,SIR,SAR] = bss_eval_images(ie,i,Gj,G)
+function [SDR,ISR,SIR,SAR,Gj,G] = bss_eval_images(ie,i,Gj,G)
 nsrc = size(ie,3);
 if nargin == 2
     %if the G matrix is not given, initialize it to empty
